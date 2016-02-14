@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
 set(src_files
-	src/main.cpp
 	src/chip8.cpp
 	)
 
