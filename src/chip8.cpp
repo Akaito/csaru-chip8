@@ -42,10 +42,18 @@ static const uint16_t s_fontSet[80] = {
 //=====================================================================
 void Chip8::Initialize () {
 
-    m_pc     = s_progRomRamBegin;
+    CSaruCore::SecureZero(m_memory, s_memoryBytes);
+    CSaruCore::SecureZero(m_v, s_registerCount);
+    m_i          = 0x0000;
+    m_pc         = s_progRomRamBegin;
+    m_delayTimer = 0;
+    m_soundTimer = 0;
+    CSaruCore::SecureZero(m_keyStates, s_keyCount);
+
     m_opcode = 0x0000;
-    m_i      = 0x0000;
+    CSaruCore::SecureZero(m_stack, s_stackSize);
     m_sp     = 0x00;
+    CSaruCore::SecureZero(m_renderOut, s_renderWidth * s_renderHeight);
 
     std::memcpy(m_memory + s_fontBegin, s_fontSet, sizeof(s_fontSet));
 
@@ -63,8 +71,22 @@ void Chip8::EmulateCycle () {
         std::memset(m_renderOut, 0, sizeof(m_renderOut));
         m_pc += 2;
     }
+    else if (m_opcode == 0x00EE) { // 0x00EE: return from call
+        m_pc = m_stack[--m_sp] + 2;
+    }
+    else if ((m_opcode & 0xF000) == 0x1000) { // 0x1NNN: jump to NNN
+        m_pc = m_opcode & 0x0FFF;
+    }
+    else if ((m_opcode & 0xF000) == 0x2000) { // 0x2NNN: call NNN
+        m_stack[m_sp++] = m_pc;
+        m_pc = m_opcode & 0x0FFF;
+    }
     else if ((m_opcode & 0xF000) == 0x6000) { // 0x6XNN: set VX to NN
         m_v[ m_opcode & 0x0F00 ] = m_opcode & 0x00FF;
+        m_pc += 2;
+    }
+    else if ((m_opcode & 0xF000) == 0x7000) { // 0x7XNN: add NN to VX
+        m_v[ m_opcode & 0x0F00 ] += m_opcode & 0x00FF;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF000) == 0xA000) { // 0xANNN: set I to NNN
