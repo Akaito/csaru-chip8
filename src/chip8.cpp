@@ -135,6 +135,14 @@ void Chip8::EmulateCycle () {
             m_pc += 2;
         m_pc += 2;
     }
+    else if ((m_opcode & 0xF0FF) == 0xF007) { // 0xFX07: VX = delay
+        m_v[ (m_opcode & 0x0F00) >> 16 ] = m_delayTimer;
+        m_pc += 2;
+    }
+    else if ((m_opcode & 0xF0FF) == 0xF015) { // 0xF015: delay = VX
+        m_delayTimer = m_v[ (m_opcode & 0x0F00) >> 16 ];
+        m_pc += 2;
+    }
     else {
         std::fprintf(
             stderr,
