@@ -70,64 +70,71 @@ void Chip8::EmulateCycle () {
     m_opcode = m_memory[m_pc] << 8 | m_memory[m_pc + 1];
 
     // Prepare common portions of opcode.
-    const uint8_t  x   = (m_opcode & 0x0F00) >> 16;
-    const auto &   vx  = m_v[x];
-    const uint8_t  y   = (m_opcode & 0x00F0) >>  8;
-    const auto &   vy  = m_v[y];
+    const uint8_t  x   = (m_opcode & 0x0F00) >> 8;
+    auto &         vx  = m_v[x];
+    const uint8_t  y   = (m_opcode & 0x00F0) >> 4;
+    auto &         vy  = m_v[y];
     const uint8_t  n   = m_opcode & 0x000F;
     const uint8_t  nn  = m_opcode & 0x00FF;
     const uint16_t nnn = m_opcode & 0x0FFF;
 
-    ref(vy);
     ref(n);
     ref(nnn);
 
-    //std::printf("  test 0x%04X\n", m_opcode & 0xF000);
-
     // Decode opcode
     if (m_opcode == 0x00E0) { // 0x00E0: clear the screen
-        std::memset(m_renderOut, 0, sizeof(m_renderOut));
+		CSaruCore::SecureZero(m_renderOut, s_renderWidth * s_renderHeight);
         m_pc += 2;
     }
     else if (m_opcode == 0x00EE) { // 0x00EE: return from call
-        m_pc = m_stack[--m_sp] + 2;
+		if (m_sp <= 0) {
+			std::fprintf(
+				stderr,
+				"Chip8: stack underflow; pc {0x%04X}.",
+				m_pc
+			);
+		}
+		else
+			m_pc = m_stack[--m_sp] + 2;
     }
     else if ((m_opcode & 0xF000) == 0x1000) { // 0x1NNN: jump to NNN
         m_pc = m_opcode & 0x0FFF;
     }
     else if ((m_opcode & 0xF000) == 0x2000) { // 0x2NNN: call NNN
-        m_stack[m_sp++] = m_pc;
-        m_pc = m_opcode & 0x0FFF;
+		if (m_sp >= s_stackSize) {
+			std::fprintf(
+				stderr,
+				"Chip8: stack overflow; pc {0x%04X}.",
+				m_pc
+			);
+		}
+		else {
+			m_stack[m_sp++] = m_pc;
+			m_pc = m_opcode & 0x0FFF;
+		}
     }
     else if ((m_opcode & 0xF000) == 0x3000) { // 0x3XNN
         // skip next instruction if VX == NN
         m_pc += (vx == nn) ? 4 : 2;
     }
-    else if ((m_opcode & 0xF000) == 0x4000) { // 0x4XNN:
+    else if ((m_opcode & 0xF000) == 0x4000) { // 0x4XNN
         // skip next instruction if VX != NN
-        auto & vx = m_v[ m_opcode & 0x0F00 ];
-        if (vx != (m_opcode & 0x00FF))
-            m_pc += 2;
-        m_pc += 2;
+		m_pc += (vx != nn) ? 4 : 2;
     }
     else if ((m_opcode & 0xF000) == 0x6000) { // 0x6XNN: set VX to NN
-        m_v[ m_opcode & 0x0F00 ] = m_opcode & 0x00FF;
+		vx = nn;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF000) == 0x7000) { // 0x7XNN: add NN to VX
-        m_v[ m_opcode & 0x0F00 ] += m_opcode & 0x00FF;
+		vx += nn;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF00F) == 0x8000) { // 0x8XY0: set VX to VY
-        auto & vx = m_v[ (m_opcode & 0x0F00) >> 16 ];
-        auto & vy = m_v[ (m_opcode & 0x00F0) >>  8 ];
         vx = vy;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF00F) == 0x8005) { // 0x8XY5: VX -= VY
         // VF is set to 0 on borrow; 1 otherwise.
-        auto & vx = m_v[ (m_opcode & 0x0F00) >> 16 ];
-        auto & vy = m_v[ (m_opcode & 0x00F0) >>  8 ];
         m_v[0xF] = (vy > vx) ? 0 : 1;
         vx -= vy;
         m_pc += 2;
@@ -138,27 +145,27 @@ void Chip8::EmulateCycle () {
     }
     else if ((m_opcode & 0xF000) == 0xC000) { // 0xCXNN: VX = (rand & NN)
         // TODO : Replace with a per-Chip8 random number generator.
-        m_v[ m_opcode & 0x0F00 ] = std::rand() & (m_opcode & 0x00FF);
+        vx = std::rand() & nn;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF000) == 0xD000) { // 0xDXYN
         // XOR-draw N rows of 8-bit-wide sprites from I
         // at (VX, VY), (VX, VY+1), etc.
         // VF set to 1 if a pixel is toggled off, otherwise 0.
+
         m_pc += 2;
+		m_drawFlag = true;
     }
     else if ((m_opcode & 0xF0FF) == 0xE09E) { // 0xEX9E
         // skip next instruction if key at VX is pressed
-        if (m_keyStates[ m_v[ (m_opcode & 0x0F00) >> 16 ] ])
-            m_pc += 2;
-        m_pc += 2;
+		m_pc += (m_keyStates[vx]) ? 4 : 2;
     }
     else if ((m_opcode & 0xF0FF) == 0xF007) { // 0xFX07: VX = delay
-        m_v[ (m_opcode & 0x0F00) >> 16 ] = m_delayTimer;
+        vx = m_delayTimer;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF0FF) == 0xF015) { // 0xF015: delay = VX
-        m_delayTimer = m_v[ (m_opcode & 0x0F00) >> 16 ];
+        m_delayTimer = vx;
         m_pc += 2;
     }
     else {
