@@ -66,8 +66,22 @@ void Chip8::Initialize (unsigned randSeed) {
 //=====================================================================
 void Chip8::EmulateCycle () {
 
-    // Fetch opcode
+    // Fetch opcode.
     m_opcode = m_memory[m_pc] << 8 | m_memory[m_pc + 1];
+
+    // Prepare common portions of opcode.
+    const uint8_t  x   = (m_opcode & 0x0F00) >> 16;
+    const auto &   vx  = m_v[x];
+    const uint8_t  y   = (m_opcode & 0x00F0) >>  8;
+    const auto &   vy  = m_v[y];
+    const uint8_t  n   = m_opcode & 0x000F;
+    const uint8_t  nn  = m_opcode & 0x00FF;
+    const uint16_t nnn = m_opcode & 0x0FFF;
+
+    ref(vy);
+    ref(n);
+    ref(nnn);
+
     //std::printf("  test 0x%04X\n", m_opcode & 0xF000);
 
     // Decode opcode
@@ -84,6 +98,10 @@ void Chip8::EmulateCycle () {
     else if ((m_opcode & 0xF000) == 0x2000) { // 0x2NNN: call NNN
         m_stack[m_sp++] = m_pc;
         m_pc = m_opcode & 0x0FFF;
+    }
+    else if ((m_opcode & 0xF000) == 0x3000) { // 0x3XNN
+        // skip next instruction if VX == NN
+        m_pc += (vx == nn) ? 4 : 2;
     }
     else if ((m_opcode & 0xF000) == 0x4000) { // 0x4XNN:
         // skip next instruction if VX != NN
