@@ -1,6 +1,7 @@
 // This is *heavily*  based on Laurence Muller's tutorial at
 // http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
 
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 
@@ -40,7 +41,7 @@ static const uint16_t s_fontSet[80] = {
 //=====================================================================
 
 //=====================================================================
-void Chip8::Initialize () {
+void Chip8::Initialize (unsigned randSeed) {
 
     CSaruCore::SecureZero(m_memory, s_memoryBytes);
     CSaruCore::SecureZero(m_v, s_registerCount);
@@ -56,6 +57,9 @@ void Chip8::Initialize () {
     CSaruCore::SecureZero(m_renderOut, s_renderWidth * s_renderHeight);
 
     std::memcpy(m_memory + s_fontBegin, s_fontSet, sizeof(s_fontSet));
+
+    // TODO : Replace with a per-Chip8 random number generator.
+    std::srand(randSeed);
 
 }
 
@@ -91,6 +95,11 @@ void Chip8::EmulateCycle () {
     }
     else if ((m_opcode & 0xF000) == 0xA000) { // 0xANNN: set I to NNN
         m_i   = m_opcode & 0x0FFF;
+        m_pc += 2;
+    }
+    else if ((m_opcode & 0xF000) == 0xC000) { // 0xCXNN: VX = (rand & NN)
+        // TODO : Replace with a per-Chip8 random number generator.
+        m_v[ m_opcode & 0x0F00 ] = std::rand() & (m_opcode & 0x00FF);
         m_pc += 2;
     }
     else if ((m_opcode & 0xF000) == 0xD000) { // 0xDXYN

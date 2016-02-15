@@ -33,7 +33,7 @@ struct Chip8 {
 
     bool     m_drawFlag; // whether or not a GUI application should render
 
-    void Initialize ();
+    void Initialize (unsigned randSeed);
     bool LoadProgram (const char * path);
     void EmulateCycle ();
     void UpdateKeyStates ();
