@@ -265,8 +265,8 @@ void Chip8::EmulateCycle () {
 		// store binary-coded decimal representation of VX in memory
 		// 100s digit at I, 10s at I+1, 1s at I+2
 		m_memory[ m_i   ] = vx / 100;
-		m_memory[ m_i+1 ] = vx /  10;
-		m_memory[ m_i+2 ] = vx %  10;
+		m_memory[ m_i+1 ] = (vx / 10) % 10;
+		m_memory[ m_i+2 ] = (vx % 100) % 10;
 		m_pc += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF055) { // 0xFX55
