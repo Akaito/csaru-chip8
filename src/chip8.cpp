@@ -95,11 +95,13 @@ void Chip8::EmulateCycle () {
 		else
 			m_pc = m_stack[--m_sp] + 2;
     }
+	/*
 	else if ((m_opcode & 0xF000) == 0x0000) { // 0x0NNN
 		// call RCA 1802 program at NNN
 		// TODO : jump, or call?
 		m_pc = nnn;
 	}
+	*/
     else if ((m_opcode & 0xF000) == 0x1000) { // 0x1NNN: jump to NNN
         m_pc = nnn;
     }
@@ -176,10 +178,13 @@ void Chip8::EmulateCycle () {
 		// skip next instruction if VX != VY
 		m_pc += (vx != vy) ? 4 : 2;
 	}
-    else if ((m_opcode & 0xF000) == 0xA000) { // 0xANNN: set I to NNN
-        m_i   = m_opcode & 0x0FFF;
+    else if ((m_opcode & 0xF000) == 0xA000) { // 0xANNN: I = NNN
+        m_i   = nnn;
         m_pc += 2;
     }
+	else if ((m_opcode & 0xF000) == 0xB000) { // 0xBNNN: jump to MMM + V0
+		m_pc = nnn + m_v[0];
+	}
     else if ((m_opcode & 0xF000) == 0xC000) { // 0xCXNN: VX = (rand & NN)
         // TODO : Replace with a per-Chip8 random number generator.
         vx = std::rand() & nn;
@@ -249,6 +254,7 @@ void Chip8::EmulateCycle () {
 		// (used by "Spaceflight 2091!")
 		m_v[0xF]  = (m_i + vx < m_i) ? 1 : 0;
 		m_i      += vx;
+		m_pc     += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF029) { // 0xFX29
 		// set I to location of character VX
@@ -264,17 +270,14 @@ void Chip8::EmulateCycle () {
 		m_pc += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF055) { // 0xFX55
-		// store V0 through VX in memory, starting at I
-		// TODO : inclusive or exclusive?
-		for (uint8_t vi = 0; vi < vx; ++vi)
-		//for (uint8_t vi = 0; vi <= vx; ++vi)
-			m_memory[ m_i + vi ] = m_v[vi];
+		// store V0...VX in memory, starting at I
+		for (uint8_t i = 0; i <= vx; ++i)
+			m_memory[ m_i + i ] = m_v[i];
+		m_pc += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF065) { // 0xFX65
 		// fill V0 to VX from memory starting at I
-		// TODO : inclusive or exclusive?
-		for (uint8_t i = 0; i < vx; ++i)
-		//for (uint8_t i = 0; i <= vx; ++i)
+		for (uint8_t i = 0; i <= vx; ++i)
 			m_v[i] = m_memory[m_i + i];
 		m_pc += 2;
 	}
@@ -294,6 +297,7 @@ void Chip8::EmulateCycle () {
     if (m_soundTimer) {
 		CSaruCore::Beep(); // beep the PC speaker
         --m_soundTimer; // play sound if non-zero
+		std::printf("  -- beep! --  \n"); // temporary
     }
 
 }
