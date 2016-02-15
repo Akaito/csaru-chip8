@@ -202,10 +202,12 @@ void Chip8::EmulateCycle () {
 			for (unsigned spriteTexX = 0; spriteTexX < 8; ++spriteTexX) {
 				// shift b1000'0000 right to current column
 				if (spriteByte & (0x80 >> spriteTexX)) {
-					auto & renderPixel = m_renderOut[
-						(vy + spriteTexY) * s_renderWidth +
-						vx + spriteTexX
-					];
+					// rendering wraps on all edges
+					uint16_t pixelX = (vx + spriteTexX) % s_renderWidth;
+					uint16_t pixelY =
+						((vy + spriteTexY) % s_renderHeight) * s_renderWidth;
+
+					auto & renderPixel = m_renderOut[pixelY + pixelX];
 					if (renderPixel) {
 						renderPixel = 0;
 						m_v[0xF]    = 0x1; // collision!  set flag
