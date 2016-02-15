@@ -153,6 +153,28 @@ void Chip8::EmulateCycle () {
         // at (VX, VY), (VX, VY+1), etc.
         // VF set to 1 if a pixel is toggled off, otherwise 0.
 
+		m_v[0xF] = 0x0; // clear collision flag
+
+		for (unsigned spriteTexY = 0; spriteTexY < n; ++spriteTexY) {
+			const uint8_t spriteByte = m_memory[ m_i + spriteTexY ];
+			for (unsigned spriteTexX = 0; spriteTexX < 8; ++spriteTexX) {
+				// shift b1000'0000 right to current column
+				if (spriteByte & (0x80 >> spriteTexX)) {
+					auto & renderPixel = m_renderOut[
+						(vy + spriteTexY) * s_renderWidth +
+						vx + spriteTexX
+					];
+					if (renderPixel) {
+						renderPixel = 0;
+						m_v[0xF]    = 0x1; // collision!  set flag
+					}
+					else {
+						renderPixel = 1;
+					}
+				}
+			}
+		}
+
         m_pc += 2;
 		m_drawFlag = true;
     }
