@@ -85,6 +85,13 @@ void Chip8::EmulateCycle () {
         m_stack[m_sp++] = m_pc;
         m_pc = m_opcode & 0x0FFF;
     }
+    else if ((m_opcode & 0xF000) == 0x4000) { // 0x4XNN:
+        // skip next instruction if VX != NN
+        auto & vx = m_v[ m_opcode & 0x0F00 ];
+        if (vx != (m_opcode & 0x00FF))
+            m_pc += 2;
+        m_pc += 2;
+    }
     else if ((m_opcode & 0xF000) == 0x6000) { // 0x6XNN: set VX to NN
         m_v[ m_opcode & 0x0F00 ] = m_opcode & 0x00FF;
         m_pc += 2;
