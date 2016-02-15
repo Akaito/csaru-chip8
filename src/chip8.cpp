@@ -266,15 +266,15 @@ void Chip8::EmulateCycle () {
 	else if ((m_opcode & 0xF0FF) == 0xF055) { // 0xFX55
 		// store V0 through VX in memory, starting at I
 		// TODO : inclusive or exclusive?
-		//for (uint8_t vi = 0; vi < vx; ++vi)
-		for (uint8_t vi = 0; vi <= vx; ++vi)
+		for (uint8_t vi = 0; vi < vx; ++vi)
+		//for (uint8_t vi = 0; vi <= vx; ++vi)
 			m_memory[ m_i + vi ] = m_v[vi];
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF065) { // 0xFX65
 		// fill V0 to VX from memory starting at I
 		// TODO : inclusive or exclusive?
-		//for (uint8_t i = 0; i < vx; ++i)
-		for (uint8_t i = 0; i <= vx; ++i)
+		for (uint8_t i = 0; i < vx; ++i)
+		//for (uint8_t i = 0; i <= vx; ++i)
 			m_v[i] = m_memory[m_i + i];
 		m_pc += 2;
 	}
@@ -292,8 +292,8 @@ void Chip8::EmulateCycle () {
     if (m_delayTimer)
         --m_delayTimer;
     if (m_soundTimer) {
-        if (!--m_soundTimer) // sound if we just hit 0
-            CSaruCore::Beep(); // beep the PC speaker
+		CSaruCore::Beep(); // beep the PC speaker
+        --m_soundTimer; // play sound if non-zero
     }
 
 }
