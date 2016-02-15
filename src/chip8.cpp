@@ -94,8 +94,17 @@ void Chip8::EmulateCycle () {
         m_pc += 2;
     }
     else if ((m_opcode & 0xF00F) == 0x8000) { // 0x8XY0: set VX to VY
-        m_v[ (m_opcode & 0x0F00) >> 16 ] =
-            m_v[ (m_opcode & 0x00F0) >> 8 ];
+        auto & vx = m_v[ (m_opcode & 0x0F00) >> 16 ];
+        auto & vy = m_v[ (m_opcode & 0x00F0) >>  8 ];
+        vx = vy;
+        m_pc += 2;
+    }
+    else if ((m_opcode & 0xF00F) == 0x8005) { // 0x8XY5: VX -= VY
+        // VF is set to 0 on borrow; 1 otherwise.
+        auto & vx = m_v[ (m_opcode & 0x0F00) >> 16 ];
+        auto & vy = m_v[ (m_opcode & 0x00F0) >>  8 ];
+        m_v[0xF] = (vy > vx) ? 0 : 1;
+        vx -= vy;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF000) == 0xA000) { // 0xANNN: set I to NNN
