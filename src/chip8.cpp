@@ -125,17 +125,29 @@ void Chip8::EmulateCycle () {
 		m_pc += (vx != nn) ? 4 : 2;
     }
     else if ((m_opcode & 0xF000) == 0x6000) { // 0x6XNN: set VX to NN
-		vx = nn;
+		vx    = nn;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF000) == 0x7000) { // 0x7XNN: add NN to VX
-		vx += nn;
+		vx   += nn;
         m_pc += 2;
     }
     else if ((m_opcode & 0xF00F) == 0x8000) { // 0x8XY0: set VX to VY
-        vx = vy;
+        vx    = vy;
         m_pc += 2;
     }
+	else if ((m_opcode & 0xF00F) == 0x8001) { // 0x8XY1: VX = VX | VY
+		vx   |= vy;
+		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF00F) == 0x8002) { // 0x8XY2: VX = VX & VY
+		vx   &= vy;
+		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF00F) == 0x8003) { // 0x8003: VX = VX ^ VY
+		vx   ^= vy;
+		m_pc += 2;
+	}
 	else if ((m_opcode & 0xF00F) == 0x8004) { // 0x8XY4
 		// add VY to VX; VF is set to 1 on carry, 0 otherwise.
 		m_v[0xF] = ((vx + vy) < vx) ? 1 : 0;
@@ -207,6 +219,10 @@ void Chip8::EmulateCycle () {
         // skip next instruction if key at VX is pressed
 		m_pc += (m_keyStates[vx]) ? 4 : 2;
     }
+	else if ((m_opcode & 0xF0FF) == 0xE0A1) { // 0xEXA1
+		// skip next instruction if key at VX isn't pressed
+		m_pc += (!m_keyStates[vx]) ? 4 : 2;
+	}
     else if ((m_opcode & 0xF0FF) == 0xF007) { // 0xFX07: VX = delay
         vx    = m_delayTimer;
         m_pc += 2;
@@ -224,6 +240,10 @@ void Chip8::EmulateCycle () {
         m_delayTimer  = vx;
         m_pc         += 2;
     }
+	else if ((m_opcode & 0xF0FF) == 0xF018) { // 0xFX18
+		m_soundTimer  = vx;
+		m_pc         += 2;
+	}
 	else if ((m_opcode & 0xF0FF) == 0xF01E) { // 0xFX1E: I += VX
 		// undocumented: VF = 1 on overflow; 0 otherwise
 		// (used by "Spaceflight 2091!")
@@ -234,6 +254,21 @@ void Chip8::EmulateCycle () {
 		// set I to location of character VX
 		m_i = s_fontBegin + vx;
 		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF0FF) == 0xF033) { // 0xFX33
+		// store binary-coded decimal representation of VX in memory
+		// 100s digit at I, 10s at I+1, 1s at I+2
+		m_memory[ m_i   ] = vx / 100;
+		m_memory[ m_i+1 ] = vx /  10;
+		m_memory[ m_i+2 ] = vx %  10;
+		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF0FF) == 0xF055) { // 0xFX55
+		// store V0 through VX in memory, starting at I
+		// TODO : inclusive or exclusive?
+		//for (uint8_t vi = 0; vi < vx; ++vi)
+		for (uint8_t vi = 0; vi <= vx; ++vi)
+			m_memory[ m_i + vi ] = m_v[vi];
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF065) { // 0xFX65
 		// fill V0 to VX from memory starting at I
