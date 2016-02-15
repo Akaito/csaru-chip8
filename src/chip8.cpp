@@ -108,6 +108,12 @@ void Chip8::EmulateCycle () {
         // VF set to 1 if a pixel is toggled off, otherwise 0.
         m_pc += 2;
     }
+    else if ((m_opcode & 0xF0FF) == 0xE09E) { // 0xEX9E
+        // skip next instruction if key at VX is pressed
+        if (m_keyStates[ m_v[ (m_opcode & 0x0F00) >> 16 ] ])
+            m_pc += 2;
+        m_pc += 2;
+    }
     else {
         std::fprintf(
             stderr,
