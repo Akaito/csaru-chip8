@@ -78,10 +78,8 @@ void Chip8::EmulateCycle () {
     const uint8_t  nn  = m_opcode & 0x00FF;
     const uint16_t nnn = m_opcode & 0x0FFF;
 
-    ref(n);
-    ref(nnn);
-
     // Decode opcode
+	// https://en.wikipedia.org/wiki/CHIP-8#Opcode_table
     if (m_opcode == 0x00E0) { // 0x00E0: clear the screen
 		CSaruCore::SecureZero(m_renderOut, s_renderWidth * s_renderHeight);
         m_pc += 2;
@@ -97,8 +95,13 @@ void Chip8::EmulateCycle () {
 		else
 			m_pc = m_stack[--m_sp] + 2;
     }
+	else if ((m_opcode & 0xF000) == 0x0000) { // 0x0NNN
+		// call RCA 1802 program at NNN
+		// TODO : jump, or call?
+		m_pc = nnn;
+	}
     else if ((m_opcode & 0xF000) == 0x1000) { // 0x1NNN: jump to NNN
-        m_pc = m_opcode & 0x0FFF;
+        m_pc = nnn;
     }
     else if ((m_opcode & 0xF000) == 0x2000) { // 0x2NNN: call NNN
 		if (m_sp >= s_stackSize) {
@@ -133,12 +136,34 @@ void Chip8::EmulateCycle () {
         vx = vy;
         m_pc += 2;
     }
+	else if ((m_opcode & 0xF00F) == 0x8004) { // 0x8XY4
+		// add VY to VX; VF is set to 1 on carry, 0 otherwise.
+		m_v[0xF] = ((vx + vy) < vx) ? 1 : 0;
+		vx += vy;
+		m_pc += 2;
+	}
     else if ((m_opcode & 0xF00F) == 0x8005) { // 0x8XY5: VX -= VY
         // VF is set to 0 on borrow; 1 otherwise.
         m_v[0xF] = (vy > vx) ? 0 : 1;
         vx -= vy;
         m_pc += 2;
     }
+	else if ((m_opcode & 0xF00F) == 0x8006) { // 0x8XY6
+		// VX >>= 1; VF = least-significant bit before shift
+		m_v[0xF] = vx & 0x01;
+		vx >>= 1;
+		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF00F) == 0x800E) { // 0x8XYE
+		// VX <<= 1; VF = most-significant bit before shift
+		m_v[0xF] = vx & 0x80;
+		vx <<= 1;
+		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF00F) == 0x9000) { // 0x9XY0
+		// skip next instruction if VX != VY
+		m_pc += (vx != vy) ? 4 : 2;
+	}
     else if ((m_opcode & 0xF000) == 0xA000) { // 0xANNN: set I to NNN
         m_i   = m_opcode & 0x0FFF;
         m_pc += 2;
@@ -175,21 +200,49 @@ void Chip8::EmulateCycle () {
 			}
 		}
 
-        m_pc += 2;
-		m_drawFlag = true;
+        m_pc       += 2;
+		m_drawFlag  = true;
     }
     else if ((m_opcode & 0xF0FF) == 0xE09E) { // 0xEX9E
         // skip next instruction if key at VX is pressed
 		m_pc += (m_keyStates[vx]) ? 4 : 2;
     }
     else if ((m_opcode & 0xF0FF) == 0xF007) { // 0xFX07: VX = delay
-        vx = m_delayTimer;
+        vx    = m_delayTimer;
         m_pc += 2;
     }
-    else if ((m_opcode & 0xF0FF) == 0xF015) { // 0xF015: delay = VX
-        m_delayTimer = vx;
-        m_pc += 2;
+	else if ((m_opcode & 0xF0FF) == 0xF00A) { // 0xFX0A
+		// wait for key press, then store in VX
+		for (uint8_t key = 0x0; key < s_keyCount; ++key) {
+			if (m_keyStates[key]) {
+				m_v[ (m_opcode & 0x0F00) >> 8 ] = key;
+				m_pc += 2;
+			}
+		}
+	}
+    else if ((m_opcode & 0xF0FF) == 0xF015) { // 0xFX15: delay = VX
+        m_delayTimer  = vx;
+        m_pc         += 2;
     }
+	else if ((m_opcode & 0xF0FF) == 0xF01E) { // 0xFX1E: I += VX
+		// undocumented: VF = 1 on overflow; 0 otherwise
+		// (used by "Spaceflight 2091!")
+		m_v[0xF]  = (m_i + vx < m_i) ? 1 : 0;
+		m_i      += vx;
+	}
+	else if ((m_opcode & 0xF0FF) == 0xF029) { // 0xFX29
+		// set I to location of character VX
+		m_i = s_fontBegin + vx;
+		m_pc += 2;
+	}
+	else if ((m_opcode & 0xF0FF) == 0xF065) { // 0xFX65
+		// fill V0 to VX from memory starting at I
+		// TODO : inclusive or exclusive?
+		//for (uint8_t i = 0; i < vx; ++i)
+		for (uint8_t i = 0; i <= vx; ++i)
+			m_v[i] = m_memory[m_i + i];
+		m_pc += 2;
+	}
     else {
         std::fprintf(
             stderr,
@@ -233,9 +286,5 @@ bool Chip8::LoadProgram (const char * path) {
 
     return true;
 
-}
-
-//=====================================================================
-void UpdateKeyStates () {
 }
 

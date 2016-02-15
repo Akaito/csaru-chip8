@@ -36,6 +36,9 @@ struct Chip8 {
     void Initialize (unsigned randSeed);
     bool LoadProgram (const char * path);
     void EmulateCycle ();
-    void UpdateKeyStates ();
+
+    //void UpdateKeyStates ();
+	//void KeyDown (uint8_t key);
+	//void KeyUp (uint8_t key);
 };
 
