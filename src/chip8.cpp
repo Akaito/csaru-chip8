@@ -76,9 +76,9 @@ void Chip8::EmulateCycle () {
 
     // Prepare common portions of opcode.
     const uint8_t  x   = (m_opcode & 0x0F00) >> 8;
-    auto &         vx  = m_v[x];
+    uint8_t &      vx  = m_v[x];
     const uint8_t  y   = (m_opcode & 0x00F0) >> 4;
-    auto &         vy  = m_v[y];
+    uint8_t &      vy  = m_v[y];
     const uint8_t  n   = m_opcode & 0x000F;
     const uint8_t  nn  = m_opcode & 0x00FF;
     const uint16_t nnn = m_opcode & 0x0FFF;
@@ -88,6 +88,7 @@ void Chip8::EmulateCycle () {
     if (m_opcode == 0x00E0) { // 0x00E0: clear the screen
 		CSaruCore::SecureZero(m_renderOut, s_renderWidth * s_renderHeight);
         m_pc += 2;
+		m_drawFlag = true;
     }
     else if (m_opcode == 0x00EE) { // 0x00EE: return from call
 		if (m_sp <= 0) {
@@ -286,6 +287,7 @@ void Chip8::EmulateCycle () {
 		// fill V0 to VX from memory starting at I
 		for (uint8_t i = 0; i <= vx; ++i)
 			m_v[i] = m_memory[m_i + i];
+		m_i += vx + 1; // From BYTE magazine code comment: (I = I + X + 1).
 		m_pc += 2;
 	}
     else {
