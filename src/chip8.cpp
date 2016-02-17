@@ -14,6 +14,11 @@
 //=====================================================================
 
 //=====================================================================
+// XXXX    ..X.
+// X..X    .XX.
+// X..X    ..x.
+// X..X    ..x.
+// XXXX    .xxx
 static const uint8_t s_fontSet[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -260,7 +265,7 @@ void Chip8::EmulateCycle () {
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF029) { // 0xFX29
 		// set I to location of character VX
-		m_i = s_fontBegin + vx;
+		m_i = s_fontBegin + vx * 5;
 		m_pc += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF033) { // 0xFX33
