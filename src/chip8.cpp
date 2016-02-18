@@ -272,6 +272,7 @@ void Chip8::EmulateCycle () {
 	else if ((m_opcode & 0xF0FF) == 0xF033) { // 0xFX33
 		// store binary-coded decimal representation of VX in memory
 		// 100s digit at I, 10s at I+1, 1s at I+2
+		// (I unchanged)
 		m_memory[ m_i   ] = vx / 100;
 		m_memory[ m_i+1 ] = (vx / 10) % 10;
 		m_memory[ m_i+2 ] = (vx % 100) % 10;
@@ -281,13 +282,15 @@ void Chip8::EmulateCycle () {
 		// store V0...VX in memory, starting at I
 		for (uint8_t i = 0; i <= vx; ++i)
 			m_memory[ m_i + i ] = m_v[i];
+		m_i += vx + 1; // From BYTE magazine code comment: (I = I + X + 1).
 		m_pc += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF065) { // 0xFX65
 		// fill V0 to VX from memory starting at I
-		for (uint8_t i = 0; i <= vx; ++i)
+		const uint8_t oldVx = vx;
+		for (uint8_t i = 0; i <= oldVx; ++i)
 			m_v[i] = m_memory[m_i + i];
-		m_i += vx + 1; // From BYTE magazine code comment: (I = I + X + 1).
+		m_i += oldVx + 1; // From BYTE magazine code comment: (I = I + X + 1).
 		m_pc += 2;
 	}
     else {
