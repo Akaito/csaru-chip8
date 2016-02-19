@@ -287,10 +287,9 @@ void Chip8::EmulateCycle () {
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF065) { // 0xFX65
 		// fill V0 to VX from memory starting at I
-		const uint8_t oldVx = vx;
-		for (uint8_t i = 0; i <= oldVx; ++i)
+		for (uint8_t i = 0; i <= x; ++i)
 			m_v[i] = m_memory[m_i + i];
-		m_i += oldVx + 1; // From BYTE magazine code comment: (I = I + X + 1).
+		m_i += x + 1; // From BYTE magazine code comment: (I = I + X + 1).
 		m_pc += 2;
 	}
     else {
