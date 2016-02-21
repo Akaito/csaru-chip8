@@ -266,7 +266,7 @@ void Chip8::EmulateCycle () {
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF029) { // 0xFX29
 		// set I to location of character VX
-		m_i = s_fontBegin + vx * 5;
+		m_i = s_fontBegin + (0xF & vx) * 5;
 		m_pc += 2;
 	}
 	else if ((m_opcode & 0xF0FF) == 0xF033) { // 0xFX33
