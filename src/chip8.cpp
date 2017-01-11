@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "../include/chip8.hpp"
+#include "exported/chip8.hpp"
 
 //=====================================================================
 //

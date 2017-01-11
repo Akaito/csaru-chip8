@@ -1,7 +1,7 @@
 // This is *heavily*  based on Laurence Muller's tutorial at
 // http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
 
-#include <csaru-core-cpp/csaru-core-cpp.h>
+#include <csaru-core-cpp/csaru-core-cpp.hpp>
 
 struct Chip8 {
     static const unsigned s_memoryBytes   = 4096;

@@ -12,6 +12,8 @@ Release
 
 # nix
 Makefile
+*.d
+*.o
 *.a
 
 # CMake
