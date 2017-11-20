@@ -61,6 +61,9 @@ void Chip8::Initialize (unsigned randSeed) {
     m_sp     = 0x00;
     CSaruCore::SecureZero(m_renderOut, s_renderWidth * s_renderHeight);
 
+	m_drawFlag = false;
+
+	// Load default Chip8 font.
     std::memcpy(m_memory + s_fontBegin, s_fontSet, sizeof(s_fontSet));
 
     // TODO : Replace with a per-Chip8 random number generator.
